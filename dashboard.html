@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Immo Rendement</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+</head>
+<body>
+    <h1>Les biens à vendre</h1>
+    <table id="data-table" border="1">
+        <thead>
+            <tr>
+                <th>Link</th>
+                <th>Titre</th>
+                <th>Adresse</th>
+                <th>Prix Vente</th>
+                <th>Superficie</th>
+                <th>Prix Location</th>
+                <th>Rendement Brut</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const csvUrl = 'https://raw.githubusercontent.com/cyriltoneatto74/immo_rend/main/immo_rend_74.csv';
+
+            Papa.parse(csvUrl, {
+                download: true,
+                header: true,
+                complete: function(results) {
+                    const data = results.data;
+                    const tableBody = document.querySelector('#data-table tbody');
+
+                    data.forEach(row => {
+                        const tr = document.createElement('tr');
+                        Object.values(row).forEach(cell => {
+                            const td = document.createElement('td');
+                            td.textContent = cell;
+                            tr.appendChild(td);
+                        });
+                        tableBody.appendChild(tr);
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
