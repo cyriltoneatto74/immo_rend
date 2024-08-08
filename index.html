@@ -38,22 +38,29 @@
             width: 100%;
             box-sizing: border-box;
         }
+        button {
+            padding: 8px;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
     <h1>Les biens à vendre</h1>
-    <input type="text" id="address-filter" placeholder="Filtrer par adresse">
+    <div>
+        <input type="text" id="address-filter" placeholder="Filtrer par adresse">
+        <button id="reset-button">Réinitialiser</button>
+    </div>
 
     <table id="data-table">
         <thead>
             <tr>
-                <th>Link</th>
-                <th>Titre</th>
-                <th>Adresse</th>
-                <th>Prix Vente</th>
-                <th>Superficie</th>
-                <th>Prix Location</th>
-                <th>Rendement Brut</th>
+                <th onclick="sortTable(0)">Link</th>
+                <th onclick="sortTable(1)">Titre</th>
+                <th onclick="sortTable(2)">Adresse</th>
+                <th onclick="sortTable(3)">Prix Vente</th>
+                <th onclick="sortTable(4)">Superficie</th>
+                <th onclick="sortTable(5)">Prix Location</th>
+                <th onclick="sortTable(6)">Rendement Brut</th>
             </tr>
         </thead>
         <tbody>
@@ -77,13 +84,13 @@
                         const tr = document.createElement('tr');
                         // Définir l'ordre des colonnes
                         const columns = [
-                            row.link, 
+                            `<a href="${row.Link}" target="_blank">${row.Link}</a>`,
                             row.titre, 
                             row.adresse, 
                             row.prix_vente, 
                             row.superficie, 
                             row.prix_location, 
-                            row.rendement_brut
+                            (parseFloat(row['rendement_brut']) * 100).toFixed(2) + '%'
                         ];
                         columns.forEach(cell => {
                             const td = document.createElement('td');
@@ -102,10 +109,38 @@
                         });
                     }
 
+                    // Fonction pour trier le tableau
+                    function sortTable(columnIndex) {
+                        const rowsArray = Array.from(tableBody.querySelectorAll('tr'));
+                        const isAscending = tableBody.dataset.sortOrder === 'asc';
+                        const sortedRows = rowsArray.sort((a, b) => {
+                            const aText = a.children[columnIndex].textContent.trim();
+                            const bText = b.children[columnIndex].textContent.trim();
+                            if (!isNaN(aText) && !isNaN(bText)) {
+                                return isAscending ? aText - bText : bText - aText;
+                            } else {
+                                return isAscending
+                                    ? aText.localeCompare(bText)
+                                    : bText.localeCompare(aText);
+                            }
+                        });
+                        tableBody.innerHTML = '';
+                        sortedRows.forEach(row => tableBody.appendChild(row));
+                        tableBody.dataset.sortOrder = isAscending ? 'desc' : 'asc';
+                    }
+
                     addressFilter.addEventListener('input', function() {
                         const filterValue = addressFilter.value.toLowerCase();
                         const filteredData = data.filter(row => row.Adresse.toLowerCase().includes(filterValue));
                         renderTable(filteredData);
+                    });
+
+                    // Réinitialiser les filtres et le tri
+                    resetButton.addEventListener('click', function() {
+                        addressFilter.value = '';
+                        tableBody.innerHTML = '';
+                        renderTable(data);
+                        tableBody.dataset.sortOrder = ''; // Réinitialiser l'ordre de tri
                     });
 
                     renderTable(data);  // Initial render
