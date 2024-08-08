@@ -72,15 +72,32 @@
                     const tableBody = document.querySelector('#data-table tbody');
                     const addressFilter = document.querySelector('#address-filter');
 
+                    // Fonction pour créer une ligne du tableau
+                    function createTableRow(row) {
+                        const tr = document.createElement('tr');
+                        // Définir l'ordre des colonnes
+                        const columns = [
+                            row.link, 
+                            row.titre, 
+                            row.adresse, 
+                            row.prix_vente, 
+                            row.superficie, 
+                            row.prix_location, 
+                            row.rendement_brut
+                        ];
+                        columns.forEach(cell => {
+                            const td = document.createElement('td');
+                            td.textContent = cell;
+                            tr.appendChild(td);
+                        });
+                        return tr;
+                    }
+
+                    // Fonction pour rendre le tableau
                     function renderTable(filteredData) {
                         tableBody.innerHTML = '';
                         filteredData.forEach(row => {
-                            const tr = document.createElement('tr');
-                            Object.values(row).forEach(cell => {
-                                const td = document.createElement('td');
-                                td.textContent = cell;
-                                tr.appendChild(td);
-                            });
+                            const tr = createTableRow(row);
                             tableBody.appendChild(tr);
                         });
                     }
