@@ -4,10 +4,47 @@
     <meta charset="UTF-8">
     <title>Immo Rendement</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 8px 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        input[type="text"] {
+            padding: 8px;
+            margin-bottom: 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+    </style>
 </head>
 <body>
     <h1>Les biens à vendre</h1>
-    <table id="data-table" border="1">
+    <input type="text" id="address-filter" placeholder="Filtrer par adresse">
+
+    <table id="data-table">
         <thead>
             <tr>
                 <th>Link</th>
@@ -33,16 +70,28 @@
                 complete: function(results) {
                     const data = results.data;
                     const tableBody = document.querySelector('#data-table tbody');
+                    const addressFilter = document.querySelector('#address-filter');
 
-                    data.forEach(row => {
-                        const tr = document.createElement('tr');
-                        Object.values(row).forEach(cell => {
-                            const td = document.createElement('td');
-                            td.textContent = cell;
-                            tr.appendChild(td);
+                    function renderTable(filteredData) {
+                        tableBody.innerHTML = '';
+                        filteredData.forEach(row => {
+                            const tr = document.createElement('tr');
+                            Object.values(row).forEach(cell => {
+                                const td = document.createElement('td');
+                                td.textContent = cell;
+                                tr.appendChild(td);
+                            });
+                            tableBody.appendChild(tr);
                         });
-                        tableBody.appendChild(tr);
+                    }
+
+                    addressFilter.addEventListener('input', function() {
+                        const filterValue = addressFilter.value.toLowerCase();
+                        const filteredData = data.filter(row => row.Adresse.toLowerCase().includes(filterValue));
+                        renderTable(filteredData);
                     });
+
+                    renderTable(data);  // Initial render
                 }
             });
         });
