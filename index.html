@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Immo Rendement</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -25,6 +25,7 @@
         }
         th {
             background-color: #f4f4f4;
+            cursor: pointer;
         }
         tr:nth-child(even) {
             background-color: #f9f9f9;
@@ -35,12 +36,13 @@
         input[type="text"] {
             padding: 8px;
             margin-bottom: 20px;
-            width: 100%;
+            width: 10%;
             box-sizing: border-box;
         }
         button {
             padding: 8px;
-            margin-left: 10px;
+            margin-left: 0px;
+            margin-bottom: 20px;
         }
     </style>
 </head>
@@ -54,13 +56,13 @@
     <table id="data-table">
         <thead>
             <tr>
-                <th onclick="sortTable(0)">Link</th>
-                <th onclick="sortTable(1)">Titre</th>
-                <th onclick="sortTable(2)">Adresse</th>
-                <th onclick="sortTable(3)">Prix Vente</th>
-                <th onclick="sortTable(4)">Superficie</th>
-                <th onclick="sortTable(5)">Prix Location</th>
-                <th onclick="sortTable(6)">Rendement Brut</th>
+                <th data-index="0">Lien</th>
+                <th data-index="1">Titre</th>
+                <th data-index="2">Adresse</th>
+                <th data-index="3">Prix Vente</th>
+                <th data-index="4">Superficie</th>
+                <th data-index="5">Prix Location</th>
+                <th data-index="6">Rendement Brut</th>
             </tr>
         </thead>
         <tbody>
@@ -71,80 +73,74 @@
         document.addEventListener('DOMContentLoaded', function() {
             const csvUrl = 'https://raw.githubusercontent.com/cyriltoneatto74/immo_rend/main/immo_rend_74.csv';
 
-            Papa.parse(csvUrl, {
-                download: true,
-                header: true,
-                complete: function(results) {
-                    const data = results.data;
-                    const tableBody = document.querySelector('#data-table tbody');
-                    const addressFilter = document.querySelector('#address-filter');
+            d3.csv(csvUrl).then(function(data) {
+                const tableBody = d3.select('#data-table tbody');
+                const addressFilter = d3.select('#address-filter');
 
-                    // Fonction pour créer une ligne du tableau
-                    function createTableRow(row) {
-                        const tr = document.createElement('tr');
-                        // Définir l'ordre des colonnes
-                        const columns = [
-                            `<a href="${row.Link}" target="_blank">${row.Link}</a>`,
-                            row.titre, 
-                            row.adresse, 
-                            row.prix_vente, 
-                            row.superficie, 
-                            row.prix_location, 
-                            (parseFloat(row['rendement_brut']) * 100).toFixed(2) + '%'
-                        ];
-                        columns.forEach(cell => {
-                            const td = document.createElement('td');
-                            td.textContent = cell;
-                            tr.appendChild(td);
-                        });
-                        return tr;
-                    }
-
-                    // Fonction pour rendre le tableau
-                    function renderTable(filteredData) {
-                        tableBody.innerHTML = '';
-                        filteredData.forEach(row => {
-                            const tr = createTableRow(row);
-                            tableBody.appendChild(tr);
-                        });
-                    }
-
-                    // Fonction pour trier le tableau
-                    function sortTable(columnIndex) {
-                        const rowsArray = Array.from(tableBody.querySelectorAll('tr'));
-                        const isAscending = tableBody.dataset.sortOrder === 'asc';
-                        const sortedRows = rowsArray.sort((a, b) => {
-                            const aText = a.children[columnIndex].textContent.trim();
-                            const bText = b.children[columnIndex].textContent.trim();
-                            if (!isNaN(aText) && !isNaN(bText)) {
-                                return isAscending ? aText - bText : bText - aText;
-                            } else {
-                                return isAscending
-                                    ? aText.localeCompare(bText)
-                                    : bText.localeCompare(aText);
-                            }
-                        });
-                        tableBody.innerHTML = '';
-                        sortedRows.forEach(row => tableBody.appendChild(row));
-                        tableBody.dataset.sortOrder = isAscending ? 'desc' : 'asc';
-                    }
-
-                    addressFilter.addEventListener('input', function() {
-                        const filterValue = addressFilter.value.toLowerCase();
-                        const filteredData = data.filter(row => row.Adresse.toLowerCase().includes(filterValue));
-                        renderTable(filteredData);
+                // Fonction pour créer une ligne du tableau
+                function createTableRow(row) {
+                    const tr = tableBody.append('tr');
+                    const columns = [
+                        row.link,
+                        row.titre,
+                        row.adresse,
+                        row.prix_vente,
+                        row.superficie,
+                        row.prix_location,
+                        row.rendement_brut
+                    ];
+                    columns.forEach((cell, i) => {
+                        const td = tr.append('td');
+                        if (i === 0) {
+                            td.append('a').attr('href', cell).text('@LeBonCoin');
+                        } else if (i === 6) {
+                            td.text((parseFloat(cell) * 100).toFixed(2) + '%');
+                        } else {
+                            td.text(cell);
+                        }
                     });
-
-                    // Réinitialiser les filtres et le tri
-                    resetButton.addEventListener('click', function() {
-                        addressFilter.value = '';
-                        tableBody.innerHTML = '';
-                        renderTable(data);
-                        tableBody.dataset.sortOrder = ''; // Réinitialiser l'ordre de tri
-                    });
-
-                    renderTable(data);  // Initial render
                 }
+
+                // Fonction pour rendre le tableau
+                function renderTable(filteredData) {
+                    tableBody.selectAll('tr').remove();
+                    filteredData.forEach(row => {
+                        createTableRow(row);
+                    });
+                }
+
+                addressFilter.on('input', function() {
+                    const filterValue = this.value.toLowerCase();
+                    const filteredData = data.filter(row => row.adresse.toLowerCase().includes(filterValue));
+                    renderTable(filteredData);
+                });
+
+                renderTable(data);  // Initial render
+
+                // Fonction pour trier le tableau
+                function sortTable(columnIndex) {
+                    const rows = tableBody.selectAll('tr').nodes();
+                    const isAscending = tableBody.attr('data-sort-order') === 'asc';
+                    const sortedRows = rows.sort((a, b) => {
+                        const aText = a.children[columnIndex].innerText.trim();
+                        const bText = b.children[columnIndex].innerText.trim();
+                        if (!isNaN(aText) && !isNaN(bText)) {
+                            return isAscending ? aText - bText : bText - aText;
+                        } else {
+                            return isAscending
+                                ? aText.localeCompare(bText)
+                                : bText.localeCompare(aText);
+                        }
+                    });
+                    tableBody.html('');
+                    sortedRows.forEach(row => tableBody.node().appendChild(row));
+                    tableBody.attr('data-sort-order', isAscending ? 'desc' : 'asc');
+                }
+
+                d3.selectAll('th').on('click', function() {
+                    const columnIndex = d3.select(this).attr('data-index');
+                    sortTable(columnIndex);
+                });
             });
         });
     </script>
