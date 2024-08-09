@@ -56,13 +56,12 @@
     <table id="data-table">
         <thead>
             <tr>
-                <th data-index="0">Lien</th>
-                <th data-index="1">Titre</th>
-                <th data-index="2">Adresse</th>
-                <th data-index="3">Prix Vente</th>
-                <th data-index="4">Superficie</th>
-                <th data-index="5">Prix Location</th>
-                <th data-index="6">Rendement Brut</th>
+                <th data-index="0">Titre</th>
+                <th data-index="1">Adresse</th>
+                <th data-index="2">Prix Vente</th>
+                <th data-index="3">Superficie</th>
+                <th data-index="4">Prix Location</th>
+                <th data-index="5">Rendement Brut</th>
             </tr>
         </thead>
         <tbody>
@@ -80,25 +79,22 @@
                 // Fonction pour créer une ligne du tableau
                 function createTableRow(row) {
                     const tr = tableBody.append('tr');
-                    const columns = [
-                        row.link,
-                        row.titre,
-                        row.adresse,
-                        row.prix_vente,
-                        row.superficie,
-                        row.prix_location,
-                        row.rendement_brut
-                    ];
-                    columns.forEach((cell, i) => {
+                    for (let i = 0; i <= 5; i++) {
                         const td = tr.append('td');
                         if (i === 0) {
-                            td.append('a').attr('href', cell).text('@LeBonCoin');
-                        } else if (i === 6) {
-                            td.text((parseFloat(cell) * 100).toFixed(2) + '%');
-                        } else {
-                            td.text(cell);
+                            td.append('a').attr('href', row.link).text(row.titre);
+                        } else if (i === 1) {
+                            td.text(row.adresse);
+                        } else if (i === 2) {
+                            td.text(row.prix_vente + ' €');
+                        } else if (i === 3) {
+                            td.text(row.superficie + ' m²');
+                        } else if (i === 4) {
+                            td.text(row.prix_location + ' €');
+                        } else if (i === 5) {
+                            td.text((parseFloat(row.rendement_brut) * 100).toFixed(1) + '%');
                         }
-                    });
+                    }
                 }
 
                 // Fonction pour rendre le tableau
@@ -122,8 +118,8 @@
                     const rows = tableBody.selectAll('tr').nodes();
                     const isAscending = tableBody.attr('data-sort-order') === 'asc';
                     const sortedRows = rows.sort((a, b) => {
-                        const aText = a.children[columnIndex].innerText.trim();
-                        const bText = b.children[columnIndex].innerText.trim();
+                        const aText = parseFloat(a.children[columnIndex].innerText.trim());
+                        const bText = parseFloat(b.children[columnIndex].innerText.trim());
                         if (!isNaN(aText) && !isNaN(bText)) {
                             return isAscending ? aText - bText : bText - aText;
                         } else {
