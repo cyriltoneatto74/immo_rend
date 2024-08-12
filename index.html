@@ -4,28 +4,60 @@
     <meta charset="UTF-8">
     <title>Immo Rendement</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 30px;
         }
-        h1 {
-            text-align: center;
-            color: #333;
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .header img {
+            width: 300px; /* Ajustez la taille du logo selon vos besoins */
+            height: auto;
+        }
+        .filter-container {
+            align-items: center;
+            margin-top: 20px;
+            margin-left: 20px;
+        }
+        .main-content {
+            display: flex; /* Affichage en flex pour aligner la carte et le tableau côte à côte */
+        }
+        .map-container {
+            width: 40%; /* Ajustez la largeur de la carte */
+            height: 500px; /* Ajustez la hauteur de la carte */
+            margin-right: 20px; /* Espace entre la carte et le tableau */
+        }
+        .button-container {
+            margin-bottom: 5px;
+            margin-left: 10px;
+        }
+        .table-container {
+            width: 60%;
+            max-height: 500px; /* Ajustez la hauteur maximale du tableau */
+            overflow-y: scroll;
+            margin-left: 0; /* Supprimer la marge gauche */
         }
         table {
-            width: 100%;
+            width: 40%;
             border-collapse: collapse;
-            margin-bottom: 20px;
         }
         th, td {
             padding: 8px 12px;
             text-align: left;
-            border: 1px solid #ddd;
         }
         th {
             background-color: #f4f4f4;
             cursor: pointer;
+            position: -webkit-sticky;
+            position: sticky;
+            top: 0;
+            border-radius: 4px 4px 0 0;
         }
         tr:nth-child(even) {
             background-color: #f9f9f9;
@@ -35,62 +67,93 @@
         }
         input[type="text"] {
             padding: 8px;
-            margin-bottom: 20px;
-            width: 10%;
-            box-sizing: border-box;
+            margin-bottom: 30px;
+            width: 200px; /* Augmenter la largeur pour une meilleure accessibilité */
+            border-radius: 10px;
+            border-color: #f4f4f4;
+            background-color: #f4f4f4;
         }
         button {
-            padding: 8px;
-            margin-left: 0px;
-            margin-bottom: 20px;
+            padding: 0; /* Enlevez le padding pour que l'image prenne toute la place */
+            border: none; /* Enlevez la bordure */
+            background: none; /* Enlevez le fond */
+            box-shadow: none; /* Enlevez l'ombre */
+            outline: none; /* Enlevez l'outline */
+            /* display: flex; */
+            /* align-items: center; Centre le contenu verticalement */
+            /* justify-content: center; Centre le contenu horizontalement */
+        }
+        .wide-column {
+            width: 100px; /* Définir une largeur spécifique pour la colonne Prix Vente */
         }
     </style>
 </head>
 <body>
-    <h1>Les biens à vendre</h1>
-    <div>
-        <input type="text" id="address-filter" placeholder="Filtrer par adresse">
-        <button id="reset-button">Réinitialiser</button>
+    <div class="header">
+        <img src="immorend_logo.png" alt="Logo du site"> <!-- Remplacez 'logo.png' par le chemin de votre logo -->
+        <div class="filter-container">
+            <input type="text" id="address-filter" placeholder="Recherche par Adresse" style="box-shadow: none;outline: none;background-color: #f9f9f9;">
+        </div>
+        <div class="button-container">
+            <button id="reset-button">
+                <img src="reset.png" alt="Réinitialiser" style="width: 20px; height: 20px;">
+            </button>
+        </div>
     </div>
 
-    <table id="data-table">
-        <thead>
-            <tr>
-                <th data-index="0">Titre</th>
-                <th data-index="1">Adresse</th>
-                <th data-index="2">Prix Vente</th>
-                <th data-index="3">Superficie</th>
-                <th data-index="4">Prix Location</th>
-                <th data-index="5">Rendement Brut</th>
-            </tr>
-        </thead>
-        <tbody>
-        </tbody>
-    </table>
+    <div class="main-content">
+        <div class="map-container" id="map"></div>
+        <div class="table-container">
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th data-index="0">Titre</th>
+                        <th data-index="1">Adresse</th>
+                        <th data-index="2" class="wide-column">Prix Vente</th>
+                        <th data-index="3">Superficie</th>
+                        <th data-index="4">Prix Location</th>
+                        <th data-index="5">Rendement Brut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const csvUrl = 'https://raw.githubusercontent.com/cyriltoneatto74/immo_rend/main/immo_rend_74.csv';
 
+            // Initialiser la carte
+            const map = L.map('map').setView([46.8, 8.2], 8); // Coordonnées centrées sur la Suisse (à ajuster si nécessaire)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
             d3.csv(csvUrl).then(function(data) {
                 const tableBody = d3.select('#data-table tbody');
                 const addressFilter = d3.select('#address-filter');
+                const resetButton = document.querySelector('#reset-button');
 
+                function formatCurrency(value) {
+                    return parseInt(value).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0});
+                }
                 // Fonction pour créer une ligne du tableau
                 function createTableRow(row) {
                     const tr = tableBody.append('tr');
                     for (let i = 0; i <= 5; i++) {
                         const td = tr.append('td');
                         if (i === 0) {
-                            td.append('a').attr('href', row.link).text(row.titre);
+                            td.append('a').attr('href', row.link).attr('target', "_blank").text(row.titre);
                         } else if (i === 1) {
                             td.text(row.adresse);
                         } else if (i === 2) {
-                            td.text(row.prix_vente + ' €');
+                            td.text(formatCurrency(row.prix_vente));
                         } else if (i === 3) {
-                            td.text(row.superficie + ' m²');
+                            td.text(parseFloat(row.superficie).toFixed(0) + ' m²');
                         } else if (i === 4) {
-                            td.text(row.prix_location + ' €');
+                            td.text(formatCurrency(row.prix_location));
                         } else if (i === 5) {
                             td.text((parseFloat(row.rendement_brut) * 100).toFixed(1) + '%');
                         }
@@ -105,13 +168,33 @@
                     });
                 }
 
+                function sortByRendementBrut(data) {
+                    return data.sort((a, b) => parseFloat(b.rendement_brut) - parseFloat(a.rendement_brut));
+                }
+
                 addressFilter.on('input', function() {
                     const filterValue = this.value.toLowerCase();
                     const filteredData = data.filter(row => row.adresse.toLowerCase().includes(filterValue));
                     renderTable(filteredData);
                 });
 
-                renderTable(data);  // Initial render
+                const sortedData = sortByRendementBrut(data);
+                renderTable(sortedData);  // Initial render
+
+                sortedData.forEach(row => {
+                    if (row.latitude && row.longitude) {
+                        const rendement = parseFloat(row.rendement_brut) * 100;
+                        const marker = L.circleMarker([row.latitude, row.longitude], {
+                            radius: 8,
+                            fillColor: rendement > 5 ? 'green' : 'red', // Couleur en fonction du rendement
+                            color: '#000',
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        }).addTo(map);
+                        marker.bindPopup(`<b>${row.titre}</b><br>Rendement Brut: ${rendement.toFixed(1)}%`);
+                    }
+                });
 
                 // Fonction pour trier le tableau
                 function sortTable(columnIndex) {
@@ -136,6 +219,14 @@
                 d3.selectAll('th').on('click', function() {
                     const columnIndex = d3.select(this).attr('data-index');
                     sortTable(columnIndex);
+                });
+
+                // Réinitialiser le filtre
+                resetButton.addEventListener('click', function() {
+                    addressFilter.property('value', '');
+                    d3.csv(csvUrl).then(function(data) {
+                        renderTable(sortByRendementBrut(data));
+                    });
                 });
             });
         });
