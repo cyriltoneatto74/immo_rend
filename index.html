@@ -6,6 +6,7 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -126,7 +127,7 @@
             const csvUrl = 'https://raw.githubusercontent.com/cyriltoneatto74/immo_rend/main/immo_rend_74.csv';
 
             // Initialiser la carte
-            const map = L.map('map').setView([46.8, 8.2], 8); // Coordonnées centrées sur la Suisse (à ajuster si nécessaire)
+            const map = L.map('map').setView([46.603354, 1.888334], 6); // Coordonnées centrées sur la Suisse (à ajuster si nécessaire)
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
@@ -181,20 +182,20 @@
                 const sortedData = sortByRendementBrut(data);
                 renderTable(sortedData);  // Initial render
 
-                sortedData.forEach(row => {
+                const heatData = sortedData.map(row => {
                     if (row.latitude && row.longitude) {
-                        const rendement = parseFloat(row.rendement_brut) * 100;
-                        const marker = L.circleMarker([row.latitude, row.longitude], {
-                            radius: 8,
-                            fillColor: rendement > 5 ? 'green' : 'red', // Couleur en fonction du rendement
-                            color: '#000',
-                            weight: 1,
-                            opacity: 1,
-                            fillOpacity: 0.8
-                        }).addTo(map);
-                        marker.bindPopup(`<b>${row.titre}</b><br>Rendement Brut: ${rendement.toFixed(1)}%`);
+                        return [row.latitude, row.longitude, parseFloat(row.rendement_brut)];
                     }
-                });
+                    return null;
+                }).filter(d => d !== null);
+
+                L.heatLayer(heatData, {
+                    radius: 25,  // Taille des points de chaleur
+                    blur: 15,    // Flou autour des points
+                    maxZoom: 10, // Zoom maximal auquel les points sont visibles
+                    max: d3.max(heatData, d => d[2]), // Ajustement de l'intensité max en fonction du rendement maximum
+                    gradient: {0.2: 'green', 0.4: 'yellow', 0.6: 'orange', 1: 'red'} // Gradient ajusté
+                }).addTo(map);
 
                 // Fonction pour trier le tableau
                 function sortTable(columnIndex) {
